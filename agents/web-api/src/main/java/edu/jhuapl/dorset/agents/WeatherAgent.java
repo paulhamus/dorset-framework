@@ -74,42 +74,49 @@ public class WeatherAgent extends AbstractAgent {
         
         String requestText = request.getText();
         
-        //String entityText = extractEntity(requestText);
-        
-       // String data = requestData(requestText);
-       // return createResponse(data);
-        
-
         AgentResponse response = null;
-        String data = requestData(requestText);        
         
+        String data = requestData(requestText);        
         
         if (data == null) {
             response = new AgentResponse(new ResponseStatus(
                             ResponseStatus.Code.AGENT_INTERNAL_ERROR,
-                            "Something went wrong with the Weather Underground API request. Please check your API key."));
-        } else {
+                            "Something went wrong with connection"));
             
+            return response;    
+        }
+        
+        if (validateData(data))
+        {
             response = createResponse(data);
             
-            /*
-            String responseText = formatResponse(keyword, json);
-            if (responseText != null) {
-                response = new AgentResponse(responseText);
-            } else {
-                response = new AgentResponse(ResponseStatus.Code.AGENT_INTERNAL_ERROR);
-            }
-            */
+            return response;
         }
-
-        return response;        
+        else{
+            response = new AgentResponse(new ResponseStatus(
+                ResponseStatus.Code.AGENT_INTERNAL_ERROR,
+                "Something went wrong with the Weather Underground API request. Please check your API key."));
         
+            return response;
+      
+        }
         
+    }
+    
+    protected Boolean validateData(String json) {
         
+        Gson gson = new Gson();
+        JsonObject jsonObj = gson.fromJson(json, JsonObject.class);
         
+        JsonObject currentObs = jsonObj.getAsJsonObject("current_observation");
         
+        if(currentObs == null){
+            
+            return false;
+        }
         
-        
+        return true;
+ 
     }
 
     protected String requestData(String requestText) {
@@ -119,8 +126,7 @@ public class WeatherAgent extends AbstractAgent {
         
         // apikey 8eaf1eec835a1033
         String urlString = "http://api.wunderground.com/api/" + this.apikey + "/conditions/q/MD/Laurel.json";
-         
-        HttpResponse response = client.execute(HttpRequest.get(createUrl(urlString)));
+        HttpResponse response = client.execute(HttpRequest.get(urlString));
         if (response == null || response.isError()) {
             return null;
         }
@@ -138,49 +144,4 @@ public class WeatherAgent extends AbstractAgent {
         return new AgentResponse(responseText);
     }
 
-    /**
-     * Iterate over the words until we think we get to the name of the entity
-     *
-    protected String extractEntity(String sentence) {
-        Tokenizer tokenizer = new RuleBasedTokenizer(true);
-        String[] words = tokenizer.tokenize(sentence);
-        int index = 0;
-        for (index = 0; index < words.length; index++) {
-            if (!dictionary.contains(words[index].toLowerCase())) {
-                break;
-            }
-        }
-        return joinStrings(Arrays.copyOfRange(words, index, words.length), " ");
-    }
-    */
-    
-    /*
-    protected String joinStrings(String[] strings, String separator) {
-        if (strings == null || strings.length == 0) {
-            return "";
-        }
-
-        StringBuilder sb = new StringBuilder();
-        sb.append(strings[0]);
-        for (int i = 1; i < strings.length; i++) {
-            sb.append(separator);
-            sb.append(strings[i]);
-        }
-        return sb.toString();
-    }
-*/
-    /*
-     * I don't know if I need to do this. I don't think so.
-     */
-    protected static String createUrl(String entity) {
-        try {
-            entity = URLEncoder.encode(entity, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            // this isn't going to happen
-            logger.error("Unexpected exception when encoding url", e);
-        }
-        return "http://api.wunderground.com/api/8eaf1eec835a1033/conditions/q/MD/Columbia.json";
-        //return "http://api.duckduckgo.com/?format=json&q=" + entity;
-    }
-    
 }
