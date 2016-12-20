@@ -17,6 +17,9 @@
 package edu.jhuapl.dorset.agents;
 
 import static org.junit.Assert.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import org.junit.Test;
 
@@ -25,62 +28,42 @@ import edu.jhuapl.dorset.agents.Agent;
 import edu.jhuapl.dorset.agents.AgentRequest;
 import edu.jhuapl.dorset.agents.AgentResponse;
 import edu.jhuapl.dorset.http.HttpClient;
+import edu.jhuapl.dorset.http.HttpRequest;
+import edu.jhuapl.dorset.http.HttpResponse;
 
 public class WeatherAgentTest {
 
+    private String apikey = "default_apikey";
+    
     @Test
     public void testGetGoodResponse() {
         String query = "Tell me the weather";
         String jsonData = FileReader.getFileAsString("weather/Laurel.json");
         HttpClient client = new FakeHttpClient(new FakeHttpResponse(jsonData));
 
-        Agent agent = new WeatherAgent(client);
+        Agent agent = new WeatherAgent(client, apikey);
         AgentResponse response = agent.process(new AgentRequest(query));
 
         assertTrue(response.isSuccess());
         assertTrue(response.getText().startsWith("The current temperature in Laurel is 61.0"));
     }
-/*
-    @Test
-    public void testWithFullSentence() {
-        String jsonData = FileReader.getFileAsString("duckduckgo/barack_obama.json");
-        HttpClient client = new FakeHttpClient(new FakeHttpResponse(jsonData));
-
-        Agent agent = new DuckDuckGoAgent(client);
-        AgentResponse response = agent.process(new AgentRequest("Who is Barack Obama?"));
-
-        assertTrue(response.isSuccess());
-        assertTrue(response.getText().startsWith("Barack Hussein Obama II is an American politician"));
-    }
 
     @Test
-    public void testGetDisambiguationResponse() {
-        String query = "Obama";
-        String jsonData = FileReader.getFileAsString("duckduckgo/obama.json");
-        HttpClient client = new FakeHttpClient(new FakeHttpResponse(jsonData));
+    public void testBadApiKey() {
+        String query = "Tell me the weather";
+        String jsonData = FileReader.getFileAsString("weather/bad_key.json");
+        
+        HttpResponse httpResponse = mock(HttpResponse.class);
+        when(httpResponse.isSuccess()).thenReturn(false);
+        when(httpResponse.asString()).thenReturn(jsonData);
+        HttpClient client = mock(HttpClient.class);
+        when(client.execute(any(HttpRequest.class))).thenReturn(httpResponse);
 
-        Agent agent = new DuckDuckGoAgent(client);
+        Agent agent = new WeatherAgent(client, apikey);
         AgentResponse response = agent.process(new AgentRequest(query));
 
-        assertEquals(ResponseStatus.Code.AGENT_DID_NOT_KNOW_ANSWER, response.getStatus().getCode());
+        assertFalse(response.isSuccess());        
+        assertEquals(ResponseStatus.Code.AGENT_INTERNAL_ERROR, response.getStatus().getCode());
     }
-
-    @Test
-    public void testGetEmptyResponse() {
-        String query = "zergblah";
-        String jsonData = FileReader.getFileAsString("duckduckgo/zergblah.json");
-        HttpClient client = new FakeHttpClient(new FakeHttpResponse(jsonData));
-
-        Agent agent = new DuckDuckGoAgent(client);
-        AgentResponse response = agent.process(new AgentRequest(query));
-
-        assertEquals(ResponseStatus.Code.AGENT_DID_NOT_KNOW_ANSWER, response.getStatus().getCode());
-    }
-
-    @Test
-    public void testUrlEncoding() {
-        String urlBase = "http://api.duckduckgo.com/?format=json&q=";
-        assertEquals(urlBase + "Barack+Obama", DuckDuckGoAgent.createUrl("Barack Obama"));
-    }
-*/
+    
 }

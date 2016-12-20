@@ -50,36 +50,76 @@ public class WeatherAgent extends AbstractAgent {
     private static final Logger logger = LoggerFactory.getLogger(WeatherAgent.class);
 
     private static final String SUMMARY =
-                    "Get information about the weather (currently hardcoded to current time, Laurel, MD)";
-    private static final String EXAMPLE = "Tell me the weather?";
+                    "Get information about the weather (currently hardcoded to current time, Laurel, MD and returns temp(f))";
+    private static final String EXAMPLE = "Tell me the current weather in Laurel Maryland?";
 
+    private String apikey;
     private HttpClient client;
-    //private Set<String> dictionary = new HashSet<String>(
-    //        Arrays.asList("what", "who", "is", "are", "a", "an", "the"));
 
     /**
      * Create a weather agent
      *
      * @param client  http client
+     * @param apikey  A Weather Underground API key 
      */
-    public WeatherAgent(HttpClient client) {
+    public WeatherAgent(HttpClient client, String apikey) {
+        this.apikey = apikey;
         this.client = client;
-        this.setDescription(new Description("weather information", SUMMARY, EXAMPLE));
+        this.setDescription(new Description("weather", SUMMARY, EXAMPLE));
     }
 
     @Override
     public AgentResponse process(AgentRequest request) {
         logger.debug("Handling the request: " + request.getText());
+        
         String requestText = request.getText();
+        
         //String entityText = extractEntity(requestText);
-        String data = requestData(requestText);
-        return createResponse(data);
+        
+       // String data = requestData(requestText);
+       // return createResponse(data);
+        
+
+        AgentResponse response = null;
+        String data = requestData(requestText);        
+        
+        
+        if (data == null) {
+            response = new AgentResponse(new ResponseStatus(
+                            ResponseStatus.Code.AGENT_INTERNAL_ERROR,
+                            "Something went wrong with the Weather Underground API request. Please check your API key."));
+        } else {
+            
+            response = createResponse(data);
+            
+            /*
+            String responseText = formatResponse(keyword, json);
+            if (responseText != null) {
+                response = new AgentResponse(responseText);
+            } else {
+                response = new AgentResponse(ResponseStatus.Code.AGENT_INTERNAL_ERROR);
+            }
+            */
+        }
+
+        return response;        
+        
+        
+        
+        
+        
+        
+        
     }
 
     protected String requestData(String requestText) {
         logger.debug("Creating URL string");
-        String urlString = "http://api.wunderground.com/api/8eaf1eec835a1033/conditions/q/MD/Laurel.json";
-        //HttpResponse response = client.execute(HttpRequest.get(createUrl(entity)));
+        
+        //String urlString = "http://api.wunderground.com/api/8eaf1eec835a1033/conditions/q/MD/Laurel.json";
+        
+        // apikey 8eaf1eec835a1033
+        String urlString = "http://api.wunderground.com/api/" + this.apikey + "/conditions/q/MD/Laurel.json";
+         
         HttpResponse response = client.execute(HttpRequest.get(createUrl(urlString)));
         if (response == null || response.isError()) {
             return null;
